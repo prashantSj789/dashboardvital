@@ -22,7 +22,7 @@ function Dashboard() {
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
   useEffect(() => {
-    const ws = new WebSocket('ws://arogyasyncbe-cxbmdwh6dvhqd8er.canadacentral-01.azurewebsites.net/ws/1');
+    const ws = new WebSocket('wss://arogyasyncbe-cxbmdwh6dvhqd8er.canadacentral-01.azurewebsites.net/ws/1');
 
     ws.onopen = () => {
       console.log('Connected to WebSocket');
