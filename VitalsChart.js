@@ -1,24 +1,28 @@
-const { useEffect, useRef } = React;
+function VitalsChart({ title, data, unit, labels }) {
+  const canvasRef = React.useRef(null);
+  const chartRef = React.useRef(null);
 
-function VitalsChart({ title, data, unit }) {
-  const canvasRef = useRef(null);
-  const chartRef = useRef(null);
+  React.useEffect(() => {
+    const ctx = canvasRef.current.getContext('2d');
 
-  useEffect(() => {
-    if (canvasRef.current) {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-      }
+    // Format timestamps into HH:mm:ss strings for x axis
+    const formattedLabels = labels.map(date =>
+      date instanceof Date ? date.toLocaleTimeString() : ''
+    );
 
-      const ctx = canvasRef.current.getContext('2d');
+    if (!chartRef.current) {
       chartRef.current = new Chart(ctx, {
         type: 'line',
         data: {
-          labels: data.map((_, index) => `${index * 5}s`),
+          labels: formattedLabels,
           datasets: [{
             label: `${title} (${unit})`,
-            data: data,
-            borderColor: title === 'Heart Rate' ? '#EF4444' : title === 'SpO2' ? '#3B82F6' : title === 'Blood Pressure' ? '#8B5CF6' : '#10B981',
+            data,
+            borderColor:
+              title === 'Heart Rate' ? '#EF4444' :
+              title === 'SpO2' ? '#3B82F6' :
+              title === 'Blood Pressure' ? '#8B5CF6' :
+              '#10B981',
             backgroundColor: 'rgba(0, 0, 0, 0.1)',
             fill: true,
             tension: 0.4,
@@ -29,6 +33,7 @@ function VitalsChart({ title, data, unit }) {
         options: {
           responsive: true,
           maintainAspectRatio: false,
+          animation: { duration: 0 },
           scales: {
             y: {
               beginAtZero: false,
@@ -36,7 +41,10 @@ function VitalsChart({ title, data, unit }) {
               max: title === 'SpO2' ? 100 : title === 'Temperature' ? 106 : title === 'Blood Pressure' ? 160 : 120,
               title: { display: true, text: unit },
             },
-            x: { title: { display: true, text: 'Time (seconds)' } },
+            x: {
+              title: { display: true, text: 'Time' },
+              ticks: { maxRotation: 45, minRotation: 45 },
+            },
           },
           plugins: {
             legend: { display: true, position: 'top' },
@@ -44,14 +52,20 @@ function VitalsChart({ title, data, unit }) {
           },
         },
       });
+    } else {
+      const chart = chartRef.current;
+      chart.data.labels = formattedLabels;
+      chart.data.datasets[0].data = data;
+      chart.update('none');
     }
 
     return () => {
       if (chartRef.current) {
         chartRef.current.destroy();
+        chartRef.current = null;
       }
     };
-  }, [data, title, unit]);
+  }, [data, labels, title, unit]);
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg flex-1 min-w-[300px]">

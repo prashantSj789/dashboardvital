@@ -1,7 +1,6 @@
 const { useState, useEffect } = React;
 
 function Dashboard() {
-  // Current vitals for display
   const [vitals, setVitals] = useState({
     heartRate: { value: 0, unit: 'bpm', status: 'normal' },
     spo2: { value: 0, unit: '%', status: 'normal' },
@@ -11,7 +10,6 @@ function Dashboard() {
     respirationRate: { value: 0, unit: 'breaths/min', status: 'normal' },
   });
 
-  // Historical data arrays for charts
   const [history, setHistory] = useState({
     heartRate: [],
     spo2: [],
@@ -19,6 +17,7 @@ function Dashboard() {
     temperature: [],
   });
 
+  const [labels, setLabels] = useState([]);
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
 
   useEffect(() => {
@@ -32,10 +31,11 @@ function Dashboard() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-
         const systolic = Math.round(data.bloodPressureSys);
         const diastolic = Math.round(data.bloodPressureDia);
-        const bloodPressureValue = `${systolic}/${diastolic}`;
+        const bpValue = `${systolic}/${diastolic}`;
+
+        const timestamp = new Date().toLocaleTimeString(); // Client-side timestamp
 
         setVitals({
           heartRate: {
@@ -49,7 +49,7 @@ function Dashboard() {
             status: data.spo2 < 95 ? 'critical' : 'normal',
           },
           bloodPressure: {
-            value: bloodPressureValue,
+            value: bpValue,
             unit: 'mmHg',
             status: systolic > 140 || diastolic > 90 ? 'critical' : 'normal',
           },
@@ -70,25 +70,23 @@ function Dashboard() {
           },
         });
 
-        // Keep last 20 data points for each vital
-        setHistory(prev => ({
+        setLabels((prev) => [...prev.slice(-19), timestamp]);
+        setHistory((prev) => ({
           heartRate: [...prev.heartRate.slice(-19), data.heartRate],
           spo2: [...prev.spo2.slice(-19), data.spo2],
           bloodPressureSys: [...prev.bloodPressureSys.slice(-19), systolic],
           temperature: [...prev.temperature.slice(-19), data.temperature],
         }));
       } catch (error) {
-        console.error('Error parsing WebSocket message:', error);
+        console.error('WebSocket error:', error);
       }
     };
 
-    ws.onerror = (error) => {
-      console.error('WebSocket error:', error);
+    ws.onerror = () => {
       setConnectionStatus('Failed to connect');
     };
 
     ws.onclose = () => {
-      console.log('WebSocket connection closed');
       setConnectionStatus('Disconnected');
     };
 
@@ -100,12 +98,11 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-blue-600 p-8">
       <div className="flex justify-center items-center mb-8">
-        <img src="logo.png" alt="ORALENS Logo" className="h-16" />
-        <h1 className="text-4xl font-bold text-white ml-4 drop-shadow-lg">Patient Vitals Dashboard</h1>
+        <img src="logo.png" alt="Logo" className="h-16" />
+        <h1 className="text-4xl font-bold text-white ml-4">Patient Vitals Dashboard</h1>
       </div>
       <p className="text-center text-white mb-4">WebSocket Status: {connectionStatus}</p>
 
-      {/* Vitals Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <VitalsCard title="Heart Rate" value={vitals.heartRate.value} unit={vitals.heartRate.unit} status={vitals.heartRate.status} />
         <VitalsCard title="SpO2" value={vitals.spo2.value} unit={vitals.spo2.unit} status={vitals.spo2.status} />
@@ -115,18 +112,13 @@ function Dashboard() {
         <VitalsCard title="Respiration Rate" value={vitals.respirationRate.value} unit={vitals.respirationRate.unit} status={vitals.respirationRate.status} />
       </div>
 
-      {/* Vitals Trends Charts */}
       <h2 className="text-2xl font-semibold text-white mt-10 mb-4 text-center">Vitals Trends</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
-        <VitalsChart title="Heart Rate" data={history.heartRate} unit="bpm" />
-        <VitalsChart title="SpO2" data={history.spo2} unit="%" />
-        <VitalsChart title="Blood Pressure" data={history.bloodPressureSys} unit="mmHg" />
-        <VitalsChart title="Temperature" data={history.temperature} unit="°F" />
+        <VitalsChart title="Heart Rate" data={history.heartRate} unit="bpm" labels={labels} />
+        <VitalsChart title="SpO2" data={history.spo2} unit="%" labels={labels} />
+        <VitalsChart title="Blood Pressure" data={history.bloodPressureSys} unit="mmHg" labels={labels} />
+        <VitalsChart title="Temperature" data={history.temperature} unit="°F" labels={labels} />
       </div>
     </div>
   );
 }
-
-// Export if needed
-// export default Dashboard;
-
