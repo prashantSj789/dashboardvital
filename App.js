@@ -35,7 +35,7 @@ function Dashboard() {
         const diastolic = Math.round(data.bloodPressureDia);
         const bpValue = `${systolic}/${diastolic}`;
 
-        const timestamp = new Date().toLocaleTimeString(); // Client-side timestamp
+        const timestamp = new Date().toLocaleTimeString(); // Client-side time label
 
         setVitals({
           heartRate: {
@@ -70,13 +70,24 @@ function Dashboard() {
           },
         });
 
-        setLabels((prev) => [...prev.slice(-19), timestamp]);
-        setHistory((prev) => ({
-          heartRate: [...prev.heartRate.slice(-19), data.heartRate],
-          spo2: [...prev.spo2.slice(-19), data.spo2],
-          bloodPressureSys: [...prev.bloodPressureSys.slice(-19), systolic],
-          temperature: [...prev.temperature.slice(-19), data.temperature],
-        }));
+        setLabels((prev) => {
+          const newLabels = [...prev, timestamp];
+          return newLabels.length > 20 ? newLabels.slice(newLabels.length - 20) : newLabels;
+        });
+
+        setHistory((prev) => {
+          const heartRate = [...prev.heartRate, data.heartRate];
+          const spo2 = [...prev.spo2, data.spo2];
+          const bloodPressureSys = [...prev.bloodPressureSys, systolic];
+          const temperature = [...prev.temperature, data.temperature];
+
+          return {
+            heartRate: heartRate.length > 20 ? heartRate.slice(heartRate.length - 20) : heartRate,
+            spo2: spo2.length > 20 ? spo2.slice(spo2.length - 20) : spo2,
+            bloodPressureSys: bloodPressureSys.length > 20 ? bloodPressureSys.slice(bloodPressureSys.length - 20) : bloodPressureSys,
+            temperature: temperature.length > 20 ? temperature.slice(temperature.length - 20) : temperature,
+          };
+        });
       } catch (error) {
         console.error('WebSocket error:', error);
       }
